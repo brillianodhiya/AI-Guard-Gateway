@@ -102,23 +102,39 @@ pub async fn handle_chat_completion(
     // Clear non-standard extra fields that might cause 422 errors on Google Gemini API
     req.extra_fields.clear();
 
-    // 5. Construct Upstream LLM Provider Target URL
-    let target_url = format!("{}/chat/completions", state.config.llm_base_url.trim_end_matches('/'));
+    // 5. Dynamic Provider & Target URL Resolution
+    let custom_provider = headers
+        .get("x-llm-provider")
+        .and_then(|v| v.to_str().ok());
 
-    info!("FORWARDING request to Upstream LLM: '{}'", target_url);
+    let (target_url, provider_name) = resolve_target_url(
+        custom_provider,
+        &req.model,
+        &state.config.llm_provider,
+        &state.config.llm_base_url,
+    );
 
-    // 6. Forward Request to Upstream Cloud Provider via reqwest Client
+    // 6. Dynamic Authorization Key Resolution
+    let auth_header_val = headers
+        .get("authorization")
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| format!("Bearer {}", state.config.llm_api_key));
+
+    info!("FORWARDING request to Provider [{}] Target URL: '{}'", provider_name, target_url);
+
+    // 7. Forward Request to Upstream Cloud Provider via reqwest Client
     let mut upstream_req = state
         .http_client
         .post(&target_url)
         .header("Content-Type", "application/json")
-        .header("Authorization", format!("Bearer {}", state.config.llm_api_key))
+        .header("Authorization", auth_header_val)
         .json(&req);
 
     // Forward additional original headers if needed
     for (k, v) in headers.iter() {
         let key_str = k.as_str();
-        if key_str != "host" && key_str != "authorization" && key_str != "content-length" && key_str != "accept-encoding" {
+        if key_str != "host" && key_str != "authorization" && key_str != "content-length" && key_str != "accept-encoding" && key_str != "x-llm-provider" {
             upstream_req = upstream_req.header(key_str, v.as_bytes());
         }
     }
@@ -146,4 +162,37 @@ pub async fn handle_chat_completion(
             (StatusCode::BAD_GATEWAY, Json(err_resp)).into_response()
         }
     }
+}
+
+/// Dynamically resolve upstream target URL based on header, model name, or config default
+fn resolve_target_url(
+    custom_provider: Option<&str>,
+    model_name: &str,
+    default_provider: &str,
+    default_base_url: &str,
+) -> (String, String) {
+    let provider = custom_provider
+        .unwrap_or_else(|| {
+            let m = model_name.to_lowercase();
+            if m.starts_with("gemini") {
+                "gemini"
+            } else if m.starts_with("llama") || m.starts_with("qwen") || m.starts_with("mixtral") {
+                "groq"
+            } else if m.starts_with("gpt") {
+                "openai"
+            } else {
+                default_provider
+            }
+        })
+        .to_lowercase();
+
+    let base_url = match provider.as_str() {
+        "gemini" => "https://generativelanguage.googleapis.com/v1beta/openai",
+        "groq" => "https://api.groq.com/openai/v1",
+        "openai" => "https://api.openai.com/v1",
+        _ => default_base_url,
+    };
+
+    let target_url = format!("{}/chat/completions", base_url.trim_end_matches('/'));
+    (target_url, provider)
 }
