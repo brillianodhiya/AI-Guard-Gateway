@@ -1,5 +1,5 @@
-# Stage 1: Build binary using official Rust image
-FROM rust:1.75-alpine AS builder
+# Stage 1: Build binary using latest stable Rust Alpine image
+FROM rust:alpine AS builder
 
 RUN apk add --no-cache musl-dev
 
