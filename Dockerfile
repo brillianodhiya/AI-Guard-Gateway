@@ -1,7 +1,7 @@
 # Stage 1: Build binary using official Rust image
-FROM rust:1.75-alpine as builder
+FROM rust:1.75-alpine AS builder
 
-RUN apk add --no-gc musl-dev
+RUN apk add --no-cache musl-dev
 
 WORKDIR /app
 COPY Cargo.toml ./
