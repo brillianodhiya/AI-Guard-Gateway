@@ -81,7 +81,7 @@ pub async fn handle_chat_completion(
     // Forward additional original headers if needed
     for (k, v) in headers.iter() {
         let key_str = k.as_str();
-        if key_str != "host" && key_str != "authorization" && key_str != "content-length" {
+        if key_str != "host" && key_str != "authorization" && key_str != "content-length" && key_str != "accept-encoding" {
             upstream_req = upstream_req.header(key_str, v.as_bytes());
         }
     }
