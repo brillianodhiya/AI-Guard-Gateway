@@ -57,6 +57,8 @@ async fn main() {
         .route("/health", get(health_check))
         .route("/v1/chat/completions", post(handle_chat_completion))
         .route("/chat/completions", post(handle_chat_completion))
+        .route("/v1/responses", post(handle_chat_completion))
+        .route("/responses", post(handle_chat_completion))
         .route("/v1/models", get(handle_models))
         .route("/models", get(handle_models))
         .fallback(fallback_handler)
@@ -65,7 +67,7 @@ async fn main() {
         .with_state(state);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
-    info!("🚀 Server running on http://{}", addr);
+    info!("🚀 Server running on http://0.0.0.0:{}", port);
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
