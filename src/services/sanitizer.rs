@@ -28,17 +28,32 @@ impl SanitizerService {
 
     /// Check if user input contains suspicious prompt injection patterns
     pub fn check_injection(&self, text: &str) -> bool {
+        let text_to_scan = if text.len() > 10000 {
+            &text[..10000]
+        } else {
+            text
+        };
+
         for pattern in &self.patterns {
-            if pattern.is_match(text) {
-                warn!("🛡️ [AI GUARD] Prompt Injection Attempt Detected: '{}'", text);
+            if pattern.is_match(text_to_scan) {
+                warn!("🛡️ [AI GUARD] Prompt Injection Attempt Detected: '{}'", text_to_scan);
                 return true;
             }
         }
         false
     }
 
+    /// Check if serde_json::Value contains prompt injection
+    pub fn check_value_injection(&self, val: &serde_json::Value) -> bool {
+        match val {
+            serde_json::Value::String(s) => self.check_injection(s),
+            serde_json::Value::Array(arr) => arr.iter().any(|v| self.check_value_injection(v)),
+            serde_json::Value::Object(map) => map.values().any(|v| self.check_value_injection(v)),
+            _ => false,
+        }
+    }
+
     /// Sanitize text by stripping or neutralising injected phrases
-    #[allow(dead_code)]
     pub fn sanitize(&self, text: &str) -> String {
         let mut cleaned = text.to_string();
         for pattern in &self.patterns {
@@ -48,4 +63,24 @@ impl SanitizerService {
         }
         cleaned
     }
+
+    /// Sanitize serde_json::Value recursively
+    #[allow(dead_code)]
+    pub fn sanitize_value(&self, val: &serde_json::Value) -> serde_json::Value {
+        match val {
+            serde_json::Value::String(s) => serde_json::Value::String(self.sanitize(s)),
+            serde_json::Value::Array(arr) => {
+                serde_json::Value::Array(arr.iter().map(|v| self.sanitize_value(v)).collect())
+            }
+            serde_json::Value::Object(map) => {
+                let mut new_map = serde_json::Map::new();
+                for (k, v) in map {
+                    new_map.insert(k.clone(), self.sanitize_value(v));
+                }
+                serde_json::Value::Object(new_map)
+            }
+            _ => val.clone(),
+        }
+    }
 }
+

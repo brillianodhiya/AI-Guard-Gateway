@@ -67,20 +67,15 @@ pub async fn handle_chat_completion(
         .find(|(k, _)| k.as_str().to_lowercase() == scope_header_name)
         .and_then(|(_, v)| v.to_str().ok());
 
-    // 2. Check Prompt Injection Security Policy
+    // 2. Check Prompt Injection Security Policy (User, System & Tool Payloads)
     if state.config.enable_sanitizer {
         for msg in &req.messages {
             if let Some(ref content) = msg.content {
-                let text_to_check = match content {
-                    serde_json::Value::String(s) => s.as_str(),
-                    _ => "",
-                };
-
-                if state.sanitizer.check_injection(text_to_check) {
-                    error!("🛑 [AI GUARD REJECT] Request blocked due to Prompt Injection Policy");
+                if state.sanitizer.check_value_injection(content) {
+                    error!("🛑 [AI GUARD REJECT] Request blocked due to Security Policy: Prompt Injection detected in message role '{}'", msg.role);
                     let err_resp = ErrorResponse {
                         error: ErrorDetails {
-                            message: "Request blocked by AI Guard Security Policy: Prompt Injection or Jailbreak Attempt Detected.".to_string(),
+                            message: format!("Request blocked by AI Guard Security Policy: Prompt Injection Attempt Detected in message role '{}'.", msg.role),
                             r#type: "security_policy_violation".to_string(),
                             code: "prompt_injection_blocked".to_string(),
                         },
@@ -90,6 +85,7 @@ pub async fn handle_chat_completion(
             }
         }
     }
+
 
     // 3. Inject Scope Context if header exists
     ContextService::inject_scope(&mut req.messages, scope_val);

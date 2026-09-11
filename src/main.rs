@@ -64,6 +64,7 @@ async fn main() {
         .route("/v1/models", get(handle_models))
         .route("/models", get(handle_models))
         .fallback(fallback_handler)
+        .layer(axum::extract::DefaultBodyLimit::max(2 * 1024 * 1024))
         .layer(TraceLayer::new_for_http())
         .layer(cors)
         .with_state(state);
