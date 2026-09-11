@@ -65,6 +65,9 @@ pub async fn handle_chat_completion(
         TruncatorService::truncate_tool_results(&mut req.messages, state.config.max_array_items);
     }
 
+    // Clear non-standard extra fields that might cause 422 errors on Google Gemini API
+    req.extra_fields.clear();
+
     // 5. Construct Upstream LLM Provider Target URL
     let target_url = format!("{}/chat/completions", state.config.llm_base_url.trim_end_matches('/'));
 
