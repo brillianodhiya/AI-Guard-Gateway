@@ -2,10 +2,18 @@
 
 [![Rust](https://img.shields.io/badge/Language-Rust_1.75+-orange.svg?style=flat&logo=rust)](https://www.rust-lang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Docker Image](https://img.shields.io/badge/Docker-15MB_Container-blue.svg?logo=docker)](https://hub.docker.com/)
+[![GHCR Docker Image](https://img.shields.io/badge/Docker_Image-ghcr.io-blue.svg?logo=docker)](https://github.com/brillianodhiya/AI-Guard-Gateway/pkgs/container/ai-guard-gateway)
 [![OpenAI Compatible](https://img.shields.io/badge/API-OpenAI_Compatible-brightgreen.svg)](https://platform.openai.com/docs/api-reference)
 
 An **ultra-high performance (<1ms latency overhead, ~10MB RAM usage)** OpenAI-compatible Security & Token Saver Reverse Proxy Gateway written in **Rust** using `Axum` and `Tokio`.
+
+---
+
+## ⚡ Instant Pull via GHCR (GitHub Container Registry)
+
+```bash
+docker pull ghcr.io/brillianodhiya/ai-guard-gateway:latest
+```
 
 ---
 
