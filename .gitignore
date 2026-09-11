@@ -1,0 +1,14 @@
+# Rust build artifacts
+/target
+Cargo.lock
+
+# Environment & Sensitive Credentials
+.env
+*.env.local
+
+# IDE & OS Artifacts
+.vscode/
+.idea/
+*.swp
+*.ds_store
+Thumbs.db

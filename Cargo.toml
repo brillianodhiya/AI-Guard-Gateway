@@ -1,0 +1,21 @@
+[package]
+name = "ai-guard-gateway"
+version = "0.1.0"
+edition = "2021"
+authors = ["Brilliano Dhiya <brillianodhiya@gmail.com>"]
+description = "Ultra-high performance, lightweight OpenAI-compatible AI Security Guard Gateway & Token Saver Proxy built with Rust 🦀"
+license = "MIT"
+repository = "https://github.com/brillianodhiya/AI-Guard-Gateway"
+keywords = ["ai", "security", "gateway", "prompt-injection", "proxy"]
+
+[dependencies]
+axum = { version = "0.7", features = ["macros"] }
+tokio = { version = "1.36", features = ["full"] }
+reqwest = { version = "0.11", features = ["json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+regex = "1.10"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+dotenvy = "0.15"
+tower-http = { version = "0.5", features = ["cors", "trace"] }

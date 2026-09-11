@@ -1,0 +1,112 @@
+use axum::{
+    extract::State,
+    http::{HeaderMap, StatusCode},
+    response::{IntoResponse, Response},
+    Json,
+};
+use crate::config::AppConfig;
+use crate::models::openai::{ChatCompletionRequest, ErrorDetails, ErrorResponse};
+use crate::services::context::ContextService;
+use crate::services::sanitizer::SanitizerService;
+use crate::services::truncator::TruncatorService;
+use reqwest::Client;
+use std::sync::Arc;
+use tracing::{error, info};
+
+pub struct AppState {
+    pub config: AppConfig,
+    pub http_client: Client,
+    pub sanitizer: SanitizerService,
+}
+
+pub async fn handle_chat_completion(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Json(mut req): Json<ChatCompletionRequest>,
+) -> Response {
+    info!("🚀 [AI GUARD GATEWAY] Received Chat Request for model: '{}'", req.model);
+
+    // 1. Extract Scope Header if present
+    let scope_header_name = state.config.scope_header.to_lowercase();
+    let scope_val = headers
+        .iter()
+        .find(|(k, _)| k.as_str().to_lowercase() == scope_header_name)
+        .and_then(|(_, v)| v.to_str().ok());
+
+    // 2. Check Prompt Injection Security Policy
+    if state.config.enable_sanitizer {
+        for msg in &req.messages {
+            if let Some(ref content) = msg.content {
+                let text_to_check = match content {
+                    serde_json::Value::String(s) => s.as_str(),
+                    _ => "",
+                };
+
+                if state.sanitizer.check_injection(text_to_check) {
+                    error!("🛑 [AI GUARD REJECT] Request blocked due to Prompt Injection Policy");
+                    let err_resp = ErrorResponse {
+                        error: ErrorDetails {
+                            message: "Request blocked by AI Guard Security Policy: Prompt Injection or Jailbreak Attempt Detected.".to_string(),
+                            r#type: "security_policy_violation".to_string(),
+                            code: "prompt_injection_blocked".to_string(),
+                        },
+                    };
+                    return (StatusCode::BAD_REQUEST, Json(err_resp)).into_response();
+                }
+            }
+        }
+    }
+
+    // 3. Inject Scope Context if header exists
+    ContextService::inject_scope(&mut req.messages, scope_val);
+
+    // 4. Apply Smart Tool Payload Truncation (Token Optimization)
+    if state.config.enable_truncator {
+        TruncatorService::truncate_tool_results(&mut req.messages, state.config.max_array_items);
+    }
+
+    // 5. Construct Upstream LLM Provider Target URL
+    let target_url = format!("{}/chat/completions", state.config.llm_base_url.trim_end_matches('/'));
+
+    info!("FORWARDING request to Upstream LLM: '{}'", target_url);
+
+    // 6. Forward Request to Upstream Cloud Provider via reqwest Client
+    let mut upstream_req = state
+        .http_client
+        .post(&target_url)
+        .header("Content-Type", "application/json")
+        .header("Authorization", format!("Bearer {}", state.config.llm_api_key))
+        .json(&req);
+
+    // Forward additional original headers if needed
+    for (k, v) in headers.iter() {
+        let key_str = k.as_str();
+        if key_str != "host" && key_str != "authorization" && key_str != "content-length" {
+            upstream_req = upstream_req.header(key_str, v.as_bytes());
+        }
+    }
+
+    match upstream_req.send().await {
+        Ok(resp) => {
+            let status = StatusCode::from_u16(resp.status().as_u16()).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
+            match resp.bytes().await {
+                Ok(bytes) => (status, bytes).into_response(),
+                Err(e) => {
+                    error!("Error reading upstream response body: {}", e);
+                    (StatusCode::BAD_GATEWAY, "Error reading LLM upstream response").into_response()
+                }
+            }
+        }
+        Err(e) => {
+            error!("Failed to connect to Upstream LLM: {}", e);
+            let err_resp = ErrorResponse {
+                error: ErrorDetails {
+                    message: format!("AI Guard Gateway Upstream Error: {}", e),
+                    r#type: "upstream_gateway_error".to_string(),
+                    code: "bad_gateway".to_string(),
+                },
+            };
+            (StatusCode::BAD_GATEWAY, Json(err_resp)).into_response()
+        }
+    }
+}

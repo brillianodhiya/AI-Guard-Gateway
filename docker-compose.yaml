@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  ai-guard-gateway:
+    build: .
+    container_name: ai-guard-gateway
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - LLM_PROVIDER=groq
+      - LLM_BASE_URL=https://api.groq.com/openai/v1
+      - LLM_API_KEY=${GROQ_API_KEY}
+      - ENABLE_PROMPT_SANITIZER=true
+      - ENABLE_SMART_TRUNCATE=true
+      - MAX_TOOL_ARRAY_ITEMS=5
+      - SCOPE_HEADER_NAME=X-Guard-Scope
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
