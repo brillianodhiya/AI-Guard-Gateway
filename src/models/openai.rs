@@ -15,7 +15,12 @@ pub struct ChatMessage {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ChatCompletionRequest {
     pub model: String,
+    #[serde(default)]
     pub messages: Vec<ChatMessage>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub input: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prompt: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub temperature: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]

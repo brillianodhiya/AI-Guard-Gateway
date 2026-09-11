@@ -5,7 +5,7 @@ use axum::{
     Json,
 };
 use crate::config::AppConfig;
-use crate::models::openai::{ChatCompletionRequest, ErrorDetails, ErrorResponse};
+use crate::models::openai::{ChatCompletionRequest, ChatMessage, ErrorDetails, ErrorResponse};
 use crate::services::context::ContextService;
 use crate::services::sanitizer::SanitizerService;
 use crate::services::truncator::TruncatorService;
@@ -24,7 +24,41 @@ pub async fn handle_chat_completion(
     headers: HeaderMap,
     Json(mut req): Json<ChatCompletionRequest>,
 ) -> Response {
-    info!("🚀 [AI GUARD GATEWAY] Received Chat Request for model: '{}'", req.model);
+    info!("🚀 [AI GUARD GATEWAY] Received Request for model: '{}'", req.model);
+
+    // Normalize /responses input/prompt fields into standard ChatMessage if messages is empty
+    if req.messages.is_empty() {
+        let mut extracted_text = String::new();
+        if let Some(ref p) = req.prompt {
+            if let Some(s) = p.as_str() {
+                extracted_text = s.to_string();
+            } else if p.is_array() {
+                if let Ok(arr_str) = serde_json::to_string(p) {
+                    extracted_text = arr_str;
+                }
+            }
+        } else if let Some(ref i) = req.input {
+            if let Some(s) = i.as_str() {
+                extracted_text = s.to_string();
+            } else if i.is_array() {
+                if let Ok(arr_str) = serde_json::to_string(i) {
+                    extracted_text = arr_str;
+                }
+            }
+        }
+
+        if !extracted_text.is_empty() {
+            req.messages.push(ChatMessage {
+                role: "user".to_string(),
+                content: Some(serde_json::Value::String(extracted_text)),
+                name: None,
+                tool_calls: None,
+                tool_call_id: None,
+            });
+        }
+    }
+    req.prompt = None;
+    req.input = None;
 
     // 1. Extract Scope Header if present
     let scope_header_name = state.config.scope_header.to_lowercase();
