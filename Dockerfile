@@ -1,7 +1,7 @@
 # Stage 1: Build binary using latest stable Rust Alpine image
 FROM rust:alpine AS builder
 
-RUN apk add --no-cache musl-dev
+RUN apk add --no-cache musl-dev pkgconfig openssl-dev
 
 WORKDIR /app
 COPY Cargo.toml ./

@@ -11,7 +11,7 @@ keywords = ["ai", "security", "gateway", "prompt-injection", "proxy"]
 [dependencies]
 axum = { version = "0.7", features = ["macros"] }
 tokio = { version = "1.36", features = ["full"] }
-reqwest = { version = "0.11", features = ["json"] }
+reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 regex = "1.10"
