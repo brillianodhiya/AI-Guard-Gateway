@@ -5,7 +5,7 @@
 [![GHCR Docker Image](https://img.shields.io/badge/Docker_Image-ghcr.io-blue.svg?logo=docker)](https://github.com/brillianodhiya/AI-Guard-Gateway/pkgs/container/ai-guard-gateway)
 [![OpenAI Compatible](https://img.shields.io/badge/API-OpenAI_Compatible-brightgreen.svg)](https://platform.openai.com/docs/api-reference)
 
-An **ultra-high performance (<1ms latency overhead, ~10MB RAM footprint)** AI Security, Prompt Injection Shield & Token Saver Proxy written in **Rust** using `Axum` and `Tokio`.
+An **ultra-high performance (<1ms latency overhead, ~10MB RAM footprint)** AI Security Guard, Prompt Injection Shield & Token Saver Proxy written in **Rust** using `Axum` and `Tokio`.
 
 ---
 
@@ -19,8 +19,8 @@ docker pull ghcr.io/brillianodhiya/ai-guard-gateway:latest
 
 ## 🌟 Key Features
 
-- 🛡️ **Dedicated Guard & Prompt Injection Sanitizer Endpoint (`/v1/guard/sanitize`)**: Sub-millisecond prompt injection detection and neutralization API for applications using native LLM SDKs (Google Gemini, OpenAI, Anthropic, Vercel AI SDK).
-- 🔄 **OpenAI-Compatible Reverse Proxy (`/v1/chat/completions`)**: Seamless drop-in proxy with dynamic auto-routing (Gemini, Groq, OpenAI) based on model names.
+- 🛡️ **Zero-LLM Standalone Guard Engine (`/v1/guard/sanitize`)**: Sub-millisecond prompt injection detection and neutralization API. **Runs 100% locally in Rust with zero LLM API dependency and $0 API cost**.
+- 🔄 **OpenAI-Compatible Reverse Proxy (`/v1/chat/completions`)**: Optional drop-in proxy with dynamic auto-routing (Gemini, Groq, OpenAI) based on model names.
 - 🔐 **Dynamic Scope & Context Injector**: Automatically injects organization/user scope boundary directives into system prompts via custom headers (`X-Guard-Scope`).
 - ✂️ **Lossless Tool Result Payload Truncator (Token Saver Engine)**: Automatically truncates massive JSON array tool results to sample sizes without degrading AI intelligence, **saving up to ~90% on LLM API token costs**.
 - ⚡ **Built with Rust 🦀**: Zero garbage collection pauses, ultra-fast async I/O with Axum/Tokio, and tiny ~15MB Docker image footprint.
@@ -31,8 +31,8 @@ docker pull ghcr.io/brillianodhiya/ai-guard-gateway:latest
 
 AI Guard Gateway can be deployed in two modes depending on your application architecture:
 
-### Mode A: Dedicated Security Guard & Sanitizer API (Microservice Guard)
-Use `/v1/guard/sanitize` when your application calls LLM APIs directly (e.g. using `@ai-sdk/google` or native SDKs).
+### Mode A: Standalone Security Guard API (Zero LLM Dependency)
+Use `/v1/guard/sanitize` when your application calls LLM APIs directly (e.g. using `@ai-sdk/google`, `@ai-sdk/openai`, or native SDKs). No LLM API key required on the Gateway!
 
 ```mermaid
 sequenceDiagram
@@ -42,7 +42,7 @@ sequenceDiagram
     participant LLM as 🧠 Native LLM Provider (Google Gemini / OpenAI)
 
     Client->>Guard: 1. POST /v1/guard/sanitize (User Messages)
-    Note over Guard: 🛡️ High-Performance Regex & Injection Inspection
+    Note over Guard: 🛡️ Sub-ms Regex & Injection Inspection (Pure Rust)
     Guard-->>Client: 2. Return { safe, detected_count, messages }
     Client->>LLM: 3. Invoke Native LLM with Clean Messages
     LLM-->>Client: 4. Final LLM Response
@@ -67,31 +67,42 @@ sequenceDiagram
 
 ---
 
-## ⚙️ Quickstart with Docker Compose
+## ⚙️ Quickstart & Configuration
 
-1. Clone the repository:
-```bash
-git clone https://github.com/brillianodhiya/AI-Guard-Gateway.git
-cd AI-Guard-Gateway
+### 1. Minimal Standalone Guard Setup (No LLM API Key Needed)
+
+To run as a pure Standalone Guard Microservice (Mode A):
+
+```env
+PORT=8080
+ENABLE_PROMPT_SANITIZER=true
 ```
 
-2. Create `.env` file from example:
+Start via Docker:
 ```bash
-cp .env.example .env
+docker run -d -p 8080:8080 ghcr.io/brillianodhiya/ai-guard-gateway:latest
 ```
 
-3. Set your environment variables in `.env`:
+---
+
+### 2. Optional LLM Reverse Proxy Setup (Mode B)
+
+If you also want the Gateway to reverse-proxy requests to cloud LLMs (`/v1/chat/completions`):
+
 ```env
 PORT=8080
 LLM_PROVIDER=gemini
 GEMINI_API_KEY=your_gemini_api_key_here
-ENABLE_SANITIZER=true
+# OR
+LLM_PROVIDER=groq
+GROQ_API_KEY=your_groq_api_key_here
 ```
 
-4. Start the Gateway:
+Start via Docker Compose:
 ```bash
 docker compose up -d
 ```
+
 The Gateway is now listening on **`http://localhost:8080`**!
 
 ---
