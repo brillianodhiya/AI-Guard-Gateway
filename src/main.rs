@@ -55,6 +55,8 @@ async fn main() {
 
     let app = Router::new()
         .route("/health", get(health_check))
+        .route("/v1/guard/sanitize", post(handlers::guard::handle_sanitize))
+        .route("/guard/sanitize", post(handlers::guard::handle_sanitize))
         .route("/v1/chat/completions", post(handle_chat_completion))
         .route("/chat/completions", post(handle_chat_completion))
         .route("/v1/responses", post(handle_chat_completion))

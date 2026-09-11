@@ -43,7 +43,7 @@ impl SanitizerService {
         let mut cleaned = text.to_string();
         for pattern in &self.patterns {
             if pattern.is_match(&cleaned) {
-                cleaned = pattern.replace_all(&cleaned, "[BLOCKED_INJECTION]").to_string();
+                cleaned = pattern.replace_all(&cleaned, "[neutralized_prompt_injection]").to_string();
             }
         }
         cleaned
