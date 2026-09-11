@@ -32,12 +32,12 @@ async fn main() {
     let port = config.port;
 
     info!("==================================================================");
-    info!("🛡️  STARTING AI GUARD GATEWAY (Rust 🦀 High-Performance Edition)");
+    info!("🛡️  STARTING AI GUARD GATEWAY (Rust 🦀 High-Performance Engine)");
     info!("==================================================================");
     info!("📍 Listening Port       : {}", port);
-    info!("🧠 LLM Provider         : {}", config.llm_provider);
-    info!("🔗 LLM Target Base URL  : {}", config.llm_base_url);
-    info!("🛡️  Prompt Sanitizer     : {}", config.enable_sanitizer);
+    info!("🛡️  Guard Sanitizer API : /v1/guard/sanitize (Standalone Pure Rust)");
+    info!("🔄 LLM Reverse Proxy    : /v1/chat/completions (Optional Proxy)");
+    info!("🧠 Upstream Provider    : {}", config.llm_provider);
     info!("✂️  Smart Truncator     : {}", config.enable_truncator);
     info!("🔐 Scope Header Name    : {}", config.scope_header);
     info!("==================================================================");
