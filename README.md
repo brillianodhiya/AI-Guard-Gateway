@@ -20,6 +20,8 @@ docker pull ghcr.io/brillianodhiya/ai-guard-gateway:latest
 ## 🌟 Key Features
 
 - 🛡️ **Zero-LLM Standalone Guard Engine (`/v1/guard/sanitize`)**: Sub-millisecond prompt injection detection and neutralization API. **Runs 100% locally in Rust with zero LLM API dependency and $0 API cost**.
+- 🛡️ **Direct & Indirect Prompt Injection Shield**: Protects against both user prompt injections and **Indirect Prompt Injections** embedded within tool result outputs or database payloads across all message roles (`user`, `system`, `tool`, `function`, `assistant`).
+- ⚡ **DoS & ReDoS Mitigation**: Built-in 2MB HTTP request payload body limit and input length capping safeguards to protect server resources from DoS and CPU exhaustion attacks.
 - 🔄 **OpenAI-Compatible Reverse Proxy (`/v1/chat/completions`)**: Optional drop-in proxy with dynamic auto-routing (Gemini, Groq, OpenAI) based on model names.
 - 🔐 **Dynamic Scope & Context Injector**: Automatically injects organization/user scope boundary directives into system prompts via custom headers (`X-Guard-Scope`).
 - ✂️ **Lossless Tool Result Payload Truncator (Token Saver Engine)**: Automatically truncates massive JSON array tool results to sample sizes without degrading AI intelligence, **saving up to ~90% on LLM API token costs**.
